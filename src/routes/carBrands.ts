@@ -4,7 +4,7 @@ import { PrismaClient } from '@prisma/client';
 const router = express.Router();
 const prisma = new PrismaClient();
 
-// GET /api/brands — get all brands with their models
+// GET all brands with their models
 router.get('/', async (req, res) => {
   try {
     const brands = await prisma.carBrand.findMany({
@@ -17,14 +17,12 @@ router.get('/', async (req, res) => {
   }
 });
 
-// POST /api/brands — create a new car brand
+// CREATE a new brand
 router.post('/', async (req, res) => {
   const { name } = req.body;
 
   try {
-    const brand = await prisma.carBrand.create({
-      data: { name },
-    });
+    const brand = await prisma.carBrand.create({ data: { name } });
     res.status(201).json(brand);
   } catch (error) {
     console.error(error);
@@ -32,7 +30,38 @@ router.post('/', async (req, res) => {
   }
 });
 
-// POST /api/brands/:brandId/models — create a car model under a brand
+// UPDATE a brand by ID
+router.put('/:brandId', async (req, res) => {
+  const { name } = req.body;
+  const { brandId } = req.params;
+
+  try {
+    const brand = await prisma.carBrand.update({
+      where: { id: Number(brandId) },
+      data: { name },
+    });
+    res.json(brand);
+  } catch (error) {
+    console.error(error);
+    res.status(400).json({ error: 'Could not update brand.' });
+  }
+});
+
+// DELETE a brand by ID
+router.delete('/:brandId', async (req, res) => {
+  const { brandId } = req.params;
+
+  try {
+    await prisma.carModel.deleteMany({ where: { brandId: Number(brandId) } }); // delete models first
+    await prisma.carBrand.delete({ where: { id: Number(brandId) } });
+    res.json({ message: 'Brand and its models deleted.' });
+  } catch (error) {
+    console.error(error);
+    res.status(400).json({ error: 'Could not delete brand.' });
+  }
+});
+
+// CREATE a model under a brand
 router.post('/:brandId/models', async (req, res) => {
   const { name } = req.body;
   const { brandId } = req.params;
@@ -51,5 +80,34 @@ router.post('/:brandId/models', async (req, res) => {
   }
 });
 
-export default router;
+// UPDATE a model by ID
+router.put('/models/:modelId', async (req, res) => {
+  const { name } = req.body;
+  const { modelId } = req.params;
 
+  try {
+    const model = await prisma.carModel.update({
+      where: { id: Number(modelId) },
+      data: { name },
+    });
+    res.json(model);
+  } catch (err) {
+    console.error(err);
+    res.status(400).json({ error: 'Could not update model.' });
+  }
+});
+
+// DELETE a model by ID
+router.delete('/models/:modelId', async (req, res) => {
+  const { modelId } = req.params;
+
+  try {
+    await prisma.carModel.delete({ where: { id: Number(modelId) } });
+    res.json({ message: 'Model deleted successfully.' });
+  } catch (err) {
+    console.error(err);
+    res.status(400).json({ error: 'Could not delete model.' });
+  }
+});
+
+export default router;
